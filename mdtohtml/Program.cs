@@ -1,6 +1,6 @@
-﻿
-using System;
+﻿using System;
 using System.Diagnostics;
+using System.Reflection;
 
 const string dir = "C:\\temp\\";
 
@@ -38,8 +38,9 @@ bool inList = false;
 using (StreamWriter writer = new StreamWriter(dir + "test.html"))
 {
     writer.WriteLine(header);
-    for (int i = 0; i < lines.Length; i++) 
+    for (int i = 0; i < lines.Length; i++)
     {
+        if (string.IsNullOrEmpty(lines[i])) { continue; }
         string line = lines[i];
         if (line.StartsWith(md_h1))
         {
@@ -47,19 +48,22 @@ using (StreamWriter writer = new StreamWriter(dir + "test.html"))
             int index = line.IndexOf(md_h1);
             writer.WriteLine(line.Substring(index + md_h1.Length, line.Length - md_h1.Length));
             writer.WriteLine("</h1>");
-        } else if (line.StartsWith(md_h2))
+        }
+        else if (line.StartsWith(md_h2))
         {
             writer.WriteLine("<h2>");
             int index = line.IndexOf(md_h2);
             writer.WriteLine(line.Substring(index + md_h2.Length, line.Length - md_h2.Length));
             writer.WriteLine("</h2>");
-        } else if (line.StartsWith(md_h3))
+        }
+        else if (line.StartsWith(md_h3))
         {
             writer.WriteLine("<h3>");
             int index = line.IndexOf(md_h3);
             writer.WriteLine(line.Substring(index + md_h3.Length, line.Length - md_h3.Length));
             writer.WriteLine("</h3>");
-        } else if (line.StartsWith(md_h4))
+        }
+        else if (line.StartsWith(md_h4))
         {
             writer.WriteLine("<h4>");
             int index = line.IndexOf(md_h4);
@@ -70,7 +74,8 @@ using (StreamWriter writer = new StreamWriter(dir + "test.html"))
         {
             writer.WriteLine("<hr>");
 
-        } else if (line.StartsWith("* "))
+        }
+        else if (line.StartsWith("* "))
         {
             if (!inList)
             {
@@ -83,13 +88,41 @@ using (StreamWriter writer = new StreamWriter(dir + "test.html"))
             writer.WriteLine(ProcessText(line.Substring(index + 2, line.Length - 2)));
             writer.WriteLine("</li>");
 
-            if ((inList && i == (lines.Length - 1)) || !lines[i + 1].StartsWith("* "))
+            if ((inList && i == (lines.Length - 1)) || !(lines[i + 1].IndexOf("* ") >= 0))
             {
                 writer.WriteLine("</ul>");
                 inList = false;
             }
 
+        }
+        else if (line.StartsWith("    * "))
+        {
+            int depth = 0;
+            writer.WriteLine("<ul>");
+            writer.WriteLine("<li>");
+            writer.WriteLine(line);
+            writer.WriteLine("</li>");
+            writer.WriteLine("</ul>");
 
+        }
+        else if (char.IsDigit(line[0]) && line[1] == '.')
+        {
+            if (!inList)
+            {
+                inList = true;
+                writer.WriteLine("<ol>");
+            }
+
+            int index = line.IndexOf("* ");
+            writer.WriteLine("<li>");
+            writer.WriteLine(ProcessText(line));
+            writer.WriteLine("</li>");
+
+            if ((inList && i == (lines.Length - 1)) || !(char.IsDigit(line[0]) && line[1] == '.'))
+            {
+                writer.WriteLine("</ol>");
+                inList = false;
+            }
         }
         else
         {
@@ -113,11 +146,11 @@ static string ProcessText(string input)
     int begin = input.IndexOf("***");
     if (begin >= 0)
     {
-        int end = input.Substring(begin+3).IndexOf("***");
+        int end = input.Substring(begin + 3).IndexOf("***");
         if (end > 0)
         {
             string formated_text = input.Substring(begin + 3, end);
-            string sub = input.Replace("***"+formated_text+"***", "<b><i>"+formated_text+"</i></b>");
+            string sub = input.Replace("***" + formated_text + "***", "<b><i>" + formated_text + "</i></b>");
             return ProcessText(sub);
         }
     }
